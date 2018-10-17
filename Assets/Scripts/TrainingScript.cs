@@ -28,22 +28,25 @@ public class TrainingScript : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		nClass = 3;
-		file = "Assets/DB/bancoGam50.csv";
+		file = "Assets/DB/bancofinaldiscreto.csv";
 		readDB();		
 		
-		//convertToInt(); //fills intData
-		//trainingFBinNB(); //fills parameters for Binomial
-		//assessingFBinNB(); //fills density for Binomial
+		convertToInt(); //fills intData
+		trainingFBinNB(); //fills parameters for Binomial
+		assessingFBinNB(); //fills density for Binomial
 		
 		//trainingFPoiNB(); //fills parameters for Poisson
 		//assessingFPoiNB(); //fills density for Poisson
 		
-		convertToDouble(); //fills doubleData
+		//convertToDouble(); //fills doubleData
 		//trainingFExpNB();
 		//assessingFExpNB(); 
 		
-		trainingFGamNB();
-		assessingFGamNB(); 
+		//trainingFGauNB();
+		//assessingFGauNB(); 
+		
+		//trainingFGamNB();
+		//assessingFGamNB(); 
 		
 		assessment(); //create the confusion matrix
 		
@@ -223,13 +226,11 @@ public class TrainingScript : MonoBehaviour {
 		int max = 100;
 		for (int i = 0; i < data.GetLength(0); i++)
 			for (int j = 0; j < data.GetLength(1); j++)
-				for (int k = 0; k < data.GetLength(0); k++)
+				for (int k = 0; k < data.GetLength(2); k++)
 					if (max < intData[i,j,k])
 						max = intData[i,j,k];
-
+					
 		double[] logs = new double[max+1];
-		logs[0] = 0.0; //log(0)
-		logs[1] = 0.0; //log(1)
 		for (int j = 2; j < max+1; j++)
 			logs[j] = logs[j - 1] + Math.Log(j);
 		
@@ -243,14 +244,7 @@ public class TrainingScript : MonoBehaviour {
 						density[i,((j*data.GetLength(1))+k)] += logs[N[i,l]] - 
 												(logs[intData[j,k,l]] + logs[N[i,l] - intData[j,k,l]]) +
 												(intData[j,k,l] * Math.Log(probability[i,l])) + ((N[i,l] - intData[j,k,l]) *
-												Math.Log(1 - probability[i,l])) + getLogPertinenceInt(i,j,k,l);						
-				
-		/*string text = "";
-		for(int i = 0; i < 3; i++){
-			for(int j = 0; j < 150; j++)
-				text += ("density C" + (i+1) + "L" + (j+1) + ": " + density[i,j] + "\n");
-		}			
-		Debug.Log(text);*/				
+												Math.Log(1 - probability[i,l])) + getLogPertinenceInt(i,j,k,l);	
 	}
 	
 	/**
@@ -292,13 +286,11 @@ public class TrainingScript : MonoBehaviour {
 		int max = 0;
 		for (int i = 0; i < data.GetLength(0); i++)
 			for (int j = 0; j < data.GetLength(1); j++)
-				for (int k = 0; k < data.GetLength(0); k++)
+				for (int k = 0; k < data.GetLength(2); k++)
 					if (max < intData[i,j,k])
 						max = intData[i,j,k];
 
 		double[] logs = new double[max+1];
-		logs[0] = 0.0; //log(0)
-		logs[1] = 0.0; //log(1)
 		for (int j = 2; j < max+1; j++)
 			logs[j] = logs[j - 1] + Math.Log(j);
 		
@@ -525,7 +517,7 @@ public class TrainingScript : MonoBehaviour {
 		for(int cl = 0; cl < data.GetLength(0); cl++)
 			for(int dim = 0; dim < data.GetLength(2); dim++)	
 				mean[cl, dim] /= data.GetLength(1);
-		
+				
 		//3rd - calculate log of means		
 		double[,] logMean = new double[data.GetLength(0),data.GetLength(2)];
 		for(int cl = 0; cl < data.GetLength(0); cl++)
@@ -547,13 +539,34 @@ public class TrainingScript : MonoBehaviour {
 		alpha = new double[data.GetLength(0),data.GetLength(2)];
 		for(int cl = 0; cl < data.GetLength(0); cl++)
 			for(int dim = 0; dim < data.GetLength(2); dim++)	
-				alpha[cl,dim] = 0.5 / (logMean[cl,dim] - meanLog[cl,dim]);;
+				alpha[cl,dim] = 0.5 / (logMean[cl,dim] - meanLog[cl,dim]);
 			
 		//6th - estimate beta
 		beta = new double[data.GetLength(0),data.GetLength(2)];
 		for(int cl = 0; cl < data.GetLength(0); cl++)
 			for(int dim = 0; dim < data.GetLength(2); dim++)	
-				beta[cl,dim] = mean[cl,dim] / alpha[cl,dim];
+				beta[cl,dim] = alpha[cl,dim]/mean[cl,dim];
+			
+		/*String matrix = "Alpha:\n";				
+		for(int i = 0; i < 3; i++){
+			matrix += "C" + (i + 1) + "\n";
+			for(int j = 0; j < 3; j++){
+				matrix += "D" + (j + 1) + ": " + alpha[i,j] + "\n";
+			}
+		}
+		
+		Debug.Log(matrix);
+		
+		matrix = "Beta:\n";				
+		for(int i = 0; i < 3; i++){
+			matrix += "C" + (i + 1) + "\n";
+			for(int j = 0; j < 3; j++){
+				matrix += "D" + (j + 1) + ": " + beta[i,j] + "\n";
+			}
+		}
+		
+		Debug.Log(matrix);	*/	
+			
 	}
 	
 	
@@ -572,8 +585,7 @@ public class TrainingScript : MonoBehaviour {
 							getLogPertinenceDouble(i,j,k,l);						
 	}
 	
-	
-	
+		
 	/* METHODS FOR ALL TYPES OF DATA */
 	/**
 	*
@@ -617,13 +629,13 @@ public class TrainingScript : MonoBehaviour {
 		}
 		
 		String matrix = "\t";
-		for(int i = 0; i < 3; i++)
+		for(int i = 0; i < data.GetLength(0); i++)
 			matrix += ("C" + (i + 1) + "\t");
 		matrix += ("\n");
 		
-		for(int i = 0; i < 3; i++){
+		for(int i = 0; i < data.GetLength(0); i++){
 			matrix += "C" + (i + 1) + "\t";
-			for(int j = 0; j < 3; j++){
+			for(int j = 0; j < data.GetLength(0); j++){
 				matrix += classMatrix[i,j] + "\t";
 			}
 			matrix += "\n";
