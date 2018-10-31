@@ -28,28 +28,28 @@ public class TrainingScript : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		nClass = 3;
-		file = "Assets/DB/bancofinaldiscreto.csv";
+		file = "Assets/DB/bancofinal50.csv";
 		readDB();		
 		
-		convertToInt(); //fills intData
-		trainingFBinNB(); //fills parameters for Binomial
-		assessingFBinNB(); //fills density for Binomial
+		//convertToInt(); //fills intData
+		//trainingFBinNB(); //fills parameters for Binomial
+		//assessingFBinNB(); //fills density for Binomial
 		
 		//trainingFPoiNB(); //fills parameters for Poisson
 		//assessingFPoiNB(); //fills density for Poisson
 		
-		//convertToDouble(); //fills doubleData
+		convertToDouble(); //fills doubleData
 		//trainingFExpNB();
 		//assessingFExpNB(); 
 		
 		//trainingFGauNB();
 		//assessingFGauNB(); 
 		
-		//trainingFGamNB();
-		//assessingFGamNB(); 
+		trainingFGamNB();
+		assessingFGamNB(); 
 		
 		assessment(); //create the confusion matrix
-		
+				
 	}
 	
 	// Update is called once per frame
@@ -643,6 +643,96 @@ public class TrainingScript : MonoBehaviour {
 		
 		//debug.text = matrix;
 		Debug.Log(matrix);
+		
+		kappa(classMatrix);
 	}
 
+	void kappa(int[,] matrix){
+		int nL, nC;
+		nL = nC = matrix.GetLength(0); //Numero de linhas e colunas
+		int N = 150; //Numero de instancias
+		
+		/** Calculo do Kappa **/
+		int[] sumC = new int[nC]; 
+		int[] sumL = new int[nL];
+			 
+		for(int i = 0; i < nL; i++)
+			for(int j = 0; j < nC; j++)
+			{
+				sumC[i] += matrix[i,j];
+				sumL[i] += matrix[j,i];
+			}
+		
+		double pZ = 0;
+		double pC = 0;
+		
+		for(int i = 0; i < nL; i++)
+			pZ += matrix[i,i];
+		pZ /= N;
+		
+		for(int i = 0; i < nL; i++)
+			pC += sumC[i] * sumL[i];
+		pC /= N*N;
+		
+		double kappa = (pZ - pC)/(1 - pC);
+		
+		Debug.Log("Kappa: " + kappa + "\n");
+		
+		/** Calculo da Variancia do Kappa **/		
+						
+		double t1 = 0.0;
+		double t2 = 0.0;		
+				
+		for(int i = 0; i < nL; i++)
+		{
+			t1 += matrix[i,i] * (sumC[i] + sumL[i]);	 
+			t2 += matrix[i,i] * ((sumC[i] + sumL[i]) * (sumC[i] + sumL[i]));	 
+		}
+		t1 /= N * N;
+		t2 /= N * N * N;
+		
+		double s1, s2, s3;
+		
+		double pZC = 1.0 - pZ;
+		double pCC = 1.0 - pC;
+		
+		s1 = pZ * pZC;
+		s1 /= N * pCC * pCC;
+		
+		s2 = 2  * pZC * (2 * pZ * pC - t1);
+		s2 /= N * pCC * pCC * pCC;
+		
+		s3 = pZC * pZC * (t2 - 4 * pC * pC);
+		s3 /= N * pCC * pCC * pCC * pCC;
+			
+		double kappaVar = s1 + s2 + s3;
+		
+		Debug.Log("Kappa Variance: " + kappaVar + "\n");
+		
+		/** Calculo da Intervalo de Confianca do Kappa **/
+			
+		/*double upper = kappa + 1.96 * sqrt(kappaVar); 
+		double lower = kappa - 1.96 * sqrt(kappaVar);
+		
+		cout << "Intervalo de Confianca: (" << upper << ", " << lower << ")" << endl; 
+		
+		/** Calculo do Teste de Hipoteses do Kappa **/
+		/*
+		double z = abs(kappa1 - kappa2)/(sqrt(kappaVar1 + kappaVar2));
+		
+		if(z > 1.96)
+			cout << "Ao nivel de 5% de significancia ha diferenca entre os Modelos 1 e 2 de Suporte a Decisao." << endl;
+		else
+			cout << "Ao nivel de 5% de significancia nao ha diferenca entre os Modelos 1 e 2 de Suporte a Decisao." << endl;
+		*/
+			
+		/** Overall Accuracy Index **/
+		
+		double oA = pZ*100;
+		double oAVar = (pZ * (1 - pZ)) / N;
+		
+		Debug.Log("Overall Accuracy Index: " + oA + "\n");		
+		Debug.Log("Overall Accuracy Variance: " + oAVar + "\n");
+		
+	}
 }
