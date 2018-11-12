@@ -24,11 +24,12 @@ public class TrainingScript : MonoBehaviour {
 	double[,] probability; // parameter for Binomial
 	double[,] lambda; //parameter for Poisson and Exponential
 	double[,,,] pertinences; //parameter for Fuzzy (Zadeh) method
+	double[] weights;
 
 	// Use this for initialization
 	void Start () {
 		nClass = 3;
-		file = "Assets/DB/bancofinal50.csv";
+		file = "Assets/DB/bancoGam200flins.csv";
 		readDB();		
 		
 		//convertToInt(); //fills intData
@@ -38,17 +39,68 @@ public class TrainingScript : MonoBehaviour {
 		//trainingFPoiNB(); //fills parameters for Poisson
 		//assessingFPoiNB(); //fills density for Poisson
 		
-		convertToDouble(); //fills doubleData
+		//convertToDouble(); //fills doubleData
 		//trainingFExpNB();
 		//assessingFExpNB(); 
 		
 		//trainingFGauNB();
 		//assessingFGauNB(); 
 		
-		trainingFGamNB();
-		assessingFGamNB(); 
+		//trainingFGamNB();
+		//assessingFGamNB(); 
 		
+		//assessment(); //create the confusion matrix
+		
+		/** \/ Gamma Ponderada \/ **/
+		convertToDouble();
+		trainingFGamNB();
+		weights = new double[3];
+		
+		double c1 = 0.8, c2 = 0.1, c3 = 0.1;
+		weights[0] = c1;
+		weights[1] = c2;
+		weights[2] = c3;
+		Debug.Log("Pesos: " + weights[0] + " " + weights[1] + " " + weights[2]);
+		assessingWFGamNB();		
 		assessment(); //create the confusion matrix
+			
+		for(double i = 0.7; i > 0; i-=0.01){
+			double n = 0.8 - i + 0.1;
+			c1 = i;
+			c2 = n;
+			c3 = 0.1;
+			weights[0] = c1;
+			weights[1] = c2;
+			weights[2] = c3;
+			Debug.Log("Pesos: " + weights[0] + " " + weights[1] + " " + weights[2]);
+			assessingWFGamNB();		
+			assessment(); //create the confusion matrix
+			for(double j = n - 0.1; j > 0; j-=0.01){
+				c2 = j; c3 = 1 - c2 - c1;
+				weights[0] = c1;
+				weights[1] = c2;
+				weights[2] = c3;
+				Debug.Log("Pesos: " + weights[0] + " " + weights[1] + " " + weights[2]);
+				assessingWFGamNB();		
+				assessment(); //create the confusion matrix
+			}
+		}
+		
+		
+		/*for(int i = 0; i < 100; i++){
+			weights = new double[3];
+			weights[0] = c1;
+			weights[1] = c2;
+			weights[2] = c3;
+		
+			convertToDouble();
+			trainingFGamNB();
+			assessingWFGamNB();		
+			assessment(); //create the confusion matrix
+			
+			if(i)
+			c1 -= 0.1; c2 +=0.1; c3 = 1 - c1 - c2;
+		}*/
 				
 	}
 	
@@ -585,6 +637,21 @@ public class TrainingScript : MonoBehaviour {
 							getLogPertinenceDouble(i,j,k,l);						
 	}
 	
+	void assessingWFGamNB(){			
+		density = new double[data.GetLength(0),(data.GetLength(1)*data.GetLength(0))];
+		
+		for(int i = 0; i < density.GetLength(0); i++) //3 classe
+			for(int j = 0; j < data.GetLength(0); j++) //3 classe
+				for(int k = 0; k < data.GetLength(1); k++) //50 linha por classe
+					for(int l = 0; l < data.GetLength(2); l++) //3 dimensao
+						density[i,((j*data.GetLength(1))+k)] += 
+							weights[i] * (alpha[i,l] * Math.Log(beta[i,l]) +
+							(alpha[i,l] - 1) * Math.Log(doubleData[j,k,l]) -
+							beta[i,l] * doubleData[j,k,l] -
+							Math.Log(SpecialFunctions.Gamma(alpha[i,l])) +
+							getLogPertinenceDouble(i,j,k,l));						
+	}
+	
 		
 	/* METHODS FOR ALL TYPES OF DATA */
 	/**
@@ -644,7 +711,7 @@ public class TrainingScript : MonoBehaviour {
 		//debug.text = matrix;
 		Debug.Log(matrix);
 		
-		kappa(classMatrix);
+		//kappa(classMatrix);
 	}
 
 	void kappa(int[,] matrix){
