@@ -31,9 +31,9 @@ public class TrainingScript : MonoBehaviour {
 		file = "Assets/DB/bancofinaldiscreto.csv";
 		readDB();		
 		
-		convertToInt(); //fills intData
-		trainingFBinNB(); //fills parameters for Binomial
-		assessingFBinNB(); //fills density for Binomial
+		//convertToInt(); //fills intData
+		//trainingFBinNB(); //fills parameters for Binomial
+		//assessingFBinNB(); //fills density for Binomial
 		
 		//trainingFPoiNB(); //fills parameters for Poisson
 		//assessingFPoiNB(); //fills density for Poisson
@@ -48,7 +48,7 @@ public class TrainingScript : MonoBehaviour {
 		//trainingFGamNB();
 		//assessingFGamNB(); 
 		
-		assessment(); //create the confusion matrix
+		//assessment(); //create the confusion matrix
 		
 	}
 	
